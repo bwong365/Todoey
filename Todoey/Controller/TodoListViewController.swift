@@ -7,27 +7,27 @@
 //
 
 import UIKit
+import CoreData
 
 class TodoListViewController: UITableViewController {
   
-  private var todoArray = [
-    Todo(named: "Find Mike"),
-    Todo(named: "Buy Eggos"),
-    Todo(named: "Destroy Demogorgon")
-  ]
-  let dataFilePath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?.appendingPathComponent("Todos.plist")
-  
+  private var todoArray = [Todo]()
+  let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
+
   override func viewDidLoad() {
     super.viewDidLoad()
     loadTodoData()
-    // Uncomment the following line to preserve selection between presentations
-    // self.clearsSelectionOnViewWillAppear = false
     
-    // Uncomment the following line to display an Edit button in the navigation bar for this view controller.
-    // self.navigationItem.rightBarButtonItem = self.editButtonItem
   }
   
-  // MARK: - Table View Configuration
+  @IBAction func addButtonPressed(_ sender: UIBarButtonItem) {
+    let alert = createAddTodoAlert()
+    present(alert, animated: true, completion: nil)
+  }
+}
+
+// MARK: - Table View Configuration
+extension TodoListViewController {
   override func numberOfSections(in tableView: UITableView) -> Int {
     return 1
   }
@@ -59,23 +59,23 @@ class TodoListViewController: UITableViewController {
     todo.done = !todo.done
     handleDataChange()
   }
+}
 
-  // MARK: - Add Todo Item
-  @IBAction func addButtonPressed(_ sender: UIBarButtonItem) {
-    let alert = createAddTodoAlert()
-    present(alert, animated: true, completion: nil)
-  }
-  
+// MARK: - Add Todo Item
+extension TodoListViewController {
   private func createAddTodoAlert() -> UIAlertController {
     let alert = UIAlertController(title: "Add New Todoey Item", message: "", preferredStyle: .alert)
     var textField = UITextField()
     
-    let action = UIAlertAction(title: "Add Item", style: .default) { _ in
-      guard let todo = textField.text else { return }
-      self.addTodo(todo)
+    let addAction = UIAlertAction(title: "Add Item", style: .default) { _ in
+      guard let todoTitle = textField.text else { return }
+      self.addTodo(withTitle: todoTitle)
     }
+    let cancelAction = UIAlertAction(title: "Cancel", style: .destructive, handler: nil)
     
-    alert.addAction(action)
+    alert.addAction(cancelAction)
+    alert.addAction(addAction)
+
     alert.addTextField { alertTextField in
       alertTextField.placeholder = "New Todo"
       textField = alertTextField
@@ -84,79 +84,37 @@ class TodoListViewController: UITableViewController {
     return alert
   }
   
-  private func addTodo(_ title: String) {
-    todoArray.append(Todo(named: title))
+  private func addTodo(withTitle title: String) {
+    let todo = Todo(context: context)
+    todo.title = title
+    todo.done = false
+    todoArray.append(todo)
     handleDataChange()
   }
-  
+}
+
+// MARK: - Persist Data
+extension TodoListViewController {
   private func handleDataChange() {
     saveTodoData()
     tableView.reloadData()
   }
   
   private func saveTodoData() {
-    let encoder = PropertyListEncoder()
     do {
-      let encodedData = try encoder.encode(todoArray)
-      try encodedData.write(to: dataFilePath!)
+      try context.save()
     } catch {
-      print("Error encoding todo list, \(error)")
+      print("Error saving context, \(error)")
     }
   }
   
   private func loadTodoData() {
-    guard let todoData = try? Data(contentsOf: dataFilePath!) else { return }
-    let decoder = PropertyListDecoder()
+    let request: NSFetchRequest = Todo.fetchRequest()
     
     do {
-      try todoArray = decoder.decode([Todo].self, from: todoData)
+      todoArray = try context.fetch(request)
     } catch {
-      print("Error loading from file, \(error)")
+      print("Error loading from context , \(error)")
     }
   }
-  /*
-  // Override to support conditional editing of the table view.
-  override func tableView(_ tableView: UITableView, canEditRowAt indexPath: IndexPath) -> Bool {
-    // Return false if you do not want the specified item to be editable.
-    return true
-  }
-  */
-
-  /*
-  // Override to support editing the table view.
-  override func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
-    if editingStyle == .delete {
-        // Delete the row from the data source
-        tableView.deleteRows(at: [indexPath], with: .fade)
-    } else if editingStyle == .insert {
-        // Create a new instance of the appropriate class, insert it into the array, and add a new row to the table view
-    }
-  }
-  */
-
-  /*
-  // Override to support rearranging the table view.
-  override func tableView(_ tableView: UITableView, moveRowAt fromIndexPath: IndexPath, to: IndexPath) {
-
-  }
-  */
-
-  /*
-  // Override to support conditional rearranging of the table view.
-  override func tableView(_ tableView: UITableView, canMoveRowAt indexPath: IndexPath) -> Bool {
-    // Return false if you do not want the item to be re-orderable.
-    return true
-  }
-  */
-
-  /*
-  // MARK: - Navigation
-
-  // In a storyboard-based application, you will often want to do a little preparation before navigation
-  override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
-    // Get the new view controller using segue.destination.
-    // Pass the selected object to the new view controller.
-  }
-  */
-
 }
