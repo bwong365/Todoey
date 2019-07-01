@@ -10,7 +10,7 @@ import UIKit
 
 class TodoListViewController: UITableViewController {
   
-  private let itemArray = ["Find Mike", "Buy Eggos", "Destroy Demogorgon"]
+  private var itemArray = ["Find Mike", "Buy Eggos", "Destroy Demogorgon"]
   
   override func viewDidLoad() {
     super.viewDidLoad()
@@ -49,6 +49,26 @@ class TodoListViewController: UITableViewController {
     cell.accessoryType = cell.accessoryType == .checkmark ? .none : .checkmark
   }
 
+  // MARK: - Add Todo Item
+  @IBAction func addButtonPressed(_ sender: UIBarButtonItem) {
+    var textField = UITextField()
+    let alert = UIAlertController(title: "Add Item", message: "", preferredStyle: .alert)
+    
+    let action = UIAlertAction(title: "Add Item", style: .default) { action in
+      guard let todo = textField.text else { return }
+      self.itemArray.append(todo)
+      self.tableView.reloadData()
+    }
+
+    alert.addTextField { alertTextField in
+      alertTextField.placeholder = "Create new item"
+      textField = alertTextField
+    }
+    
+    alert.addAction(action)
+  
+    present(alert, animated: true, completion: nil)
+  }
   /*
   // Override to support conditional editing of the table view.
   override func tableView(_ tableView: UITableView, canEditRowAt indexPath: IndexPath) -> Bool {
