@@ -16,8 +16,8 @@ class TodoListViewController: UITableViewController {
 
   override func viewDidLoad() {
     super.viewDidLoad()
+    configureRefreshControl()
     loadTodoData()
-    
   }
   
   @IBAction func addButtonPressed(_ sender: UIBarButtonItem) {
@@ -25,6 +25,7 @@ class TodoListViewController: UITableViewController {
     present(alert, animated: true, completion: nil)
   }
 }
+
 
 // MARK: - Table View Configuration
 extension TodoListViewController {
@@ -108,13 +109,39 @@ extension TodoListViewController {
     }
   }
   
-  private func loadTodoData() {
-    let request: NSFetchRequest = Todo.fetchRequest()
+  private func loadTodoData(completion: (() -> Void)? = nil) {
+    defer {
+      completion?()
+    }
     
+    let request: NSFetchRequest = Todo.fetchRequest()
     do {
       todoArray = try context.fetch(request)
     } catch {
       print("Error loading from context , \(error)")
+    }
+  }
+}
+
+// MARK: - Pulldown Refresh
+extension TodoListViewController {
+  private func configureRefreshControl() {
+    refreshControl = UIRefreshControl()
+    refreshControl?.addTarget(self, action: #selector(refreshTodos), for: .valueChanged)
+  }
+  
+  @objc private func refreshTodos() {
+    setTableAlpha(to: 0.5)
+    loadTodoData() {
+      self.tableView.reloadData()
+      self.setTableAlpha(to: 1)
+      self.refreshControl?.endRefreshing()
+    }
+  }
+  
+  private func setTableAlpha(to alpha: CGFloat) {
+    UIView.animate(withDuration: 0.3) {
+      self.tableView.alpha = alpha
     }
   }
 }
