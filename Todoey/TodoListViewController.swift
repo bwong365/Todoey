@@ -11,10 +11,14 @@ import UIKit
 class TodoListViewController: UITableViewController {
   
   private var itemArray = ["Find Mike", "Buy Eggos", "Destroy Demogorgon"]
+  let defaults = UserDefaults.standard
   
   override func viewDidLoad() {
     super.viewDidLoad()
     
+    if let todoList = defaults.value(forKey: "TodoList") as? [String] {
+      itemArray = todoList
+    }
     // Uncomment the following line to preserve selection between presentations
     // self.clearsSelectionOnViewWillAppear = false
     
@@ -51,23 +55,32 @@ class TodoListViewController: UITableViewController {
 
   // MARK: - Add Todo Item
   @IBAction func addButtonPressed(_ sender: UIBarButtonItem) {
+    let alert = createAddTodoAlert()
+    present(alert, animated: true, completion: nil)
+  }
+  
+  private func createAddTodoAlert() -> UIAlertController {
+    let alert = UIAlertController(title: "Add New Todoey Item", message: "", preferredStyle: .alert)
     var textField = UITextField()
-    let alert = UIAlertController(title: "Add Item", message: "", preferredStyle: .alert)
     
-    let action = UIAlertAction(title: "Add Item", style: .default) { action in
+    let action = UIAlertAction(title: "Add Item", style: .default) { _ in
       guard let todo = textField.text else { return }
-      self.itemArray.append(todo)
-      self.tableView.reloadData()
-    }
-
-    alert.addTextField { alertTextField in
-      alertTextField.placeholder = "Create new item"
-      textField = alertTextField
+      self.addTodo(todo)
     }
     
     alert.addAction(action)
+    alert.addTextField { alertTextField in
+      alertTextField.placeholder = "New Todo"
+      textField = alertTextField
+    }
+    
+    return alert
+  }
   
-    present(alert, animated: true, completion: nil)
+  private func addTodo(_ todo: String) {
+    itemArray.append(todo)
+    defaults.setValue(itemArray, forKey: "TodoList")
+    tableView.reloadData()
   }
   /*
   // Override to support conditional editing of the table view.
