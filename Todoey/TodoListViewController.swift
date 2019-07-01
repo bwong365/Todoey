@@ -10,14 +10,15 @@ import UIKit
 
 class TodoListViewController: UITableViewController {
   
-  private var itemArray = ["Find Mike", "Buy Eggos", "Destroy Demogorgon"]
+  // private var itemArray = ["Find Mike", "Buy Eggos", "Destroy Demogorgon"]
+  private var todoDictionary: Dictionary<String, Bool> = ["Find Mike": false, "Buy Eggos": false, "Destroy Demogorgon": false]
   let defaults = UserDefaults.standard
   
   override func viewDidLoad() {
     super.viewDidLoad()
     
-    if let todoList = defaults.value(forKey: "TodoList") as? [String] {
-      itemArray = todoList
+    if let todoList = defaults.dictionary(forKey: "TodoList") as? Dictionary<String, Bool> {
+      todoDictionary = todoList
     }
     // Uncomment the following line to preserve selection between presentations
     // self.clearsSelectionOnViewWillAppear = false
@@ -32,25 +33,28 @@ class TodoListViewController: UITableViewController {
   }
   
   override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-    return itemArray.count
+    return todoDictionary.count
   }
 
   override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
     let cell = tableView.dequeueReusableCell(withIdentifier: "TodoItemCell", for: indexPath)
-    cell.textLabel?.text = itemArray[indexPath.row]
+    let todoDictKey = Array(todoDictionary.keys)[indexPath.row]
+    cell.textLabel?.text = todoDictKey
+    cell.accessoryType = todoDictionary[todoDictKey]! ? .checkmark : .none
+    
     return cell
   }
   
   // MARK: - Table View Selection
   override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-    guard let cell = tableView.cellForRow(at: indexPath) else { return }
-    
-    toggleCheckmark(for: cell)
+    let todo = Array(todoDictionary.keys)[indexPath.row]
+    toggleCheckmark(for: todo)
     tableView.deselectRow(at: indexPath, animated: true)
   }
   
-  private func toggleCheckmark(for cell: UITableViewCell) {
-    cell.accessoryType = cell.accessoryType == .checkmark ? .none : .checkmark
+  private func toggleCheckmark(for todo: String) {
+    todoDictionary[todo] = !todoDictionary[todo]!
+    tableView.reloadData()
   }
 
   // MARK: - Add Todo Item
@@ -78,8 +82,8 @@ class TodoListViewController: UITableViewController {
   }
   
   private func addTodo(_ todo: String) {
-    itemArray.append(todo)
-    defaults.setValue(itemArray, forKey: "TodoList")
+    todoDictionary[todo] = false
+    defaults.setValue(todoDictionary, forKey: "TodoList")
     tableView.reloadData()
   }
   /*
