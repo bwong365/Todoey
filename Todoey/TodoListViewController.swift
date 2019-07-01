@@ -10,14 +10,18 @@ import UIKit
 
 class TodoListViewController: UITableViewController {
   
-  private var itemArray = ["Find Mike", "Buy Eggos", "Destroy Demogorgon"]
+  private var todoArray = [
+    Todo(named: "Find Mike"),
+    Todo(named: "Buy Eggos"),
+    Todo(named: "Destroy Demogorgon")
+  ]
   let defaults = UserDefaults.standard
   
   override func viewDidLoad() {
     super.viewDidLoad()
     
-    if let todoList = defaults.value(forKey: "TodoList") as? [String] {
-      itemArray = todoList
+    if let todoList = defaults.value(forKey: "TodoList") as? [Todo] {
+      todoArray = todoList
     }
     // Uncomment the following line to preserve selection between presentations
     // self.clearsSelectionOnViewWillAppear = false
@@ -32,25 +36,31 @@ class TodoListViewController: UITableViewController {
   }
   
   override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-    return itemArray.count
+    return todoArray.count
   }
 
   override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
     let cell = tableView.dequeueReusableCell(withIdentifier: "TodoItemCell", for: indexPath)
-    cell.textLabel?.text = itemArray[indexPath.row]
+    let todo = todoArray[indexPath.row]
+    cell.textLabel?.text = todo.title
+    cell.accessoryType = todo.done ? .checkmark : .none
     return cell
   }
   
   // MARK: - Table View Selection
   override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-    guard let cell = tableView.cellForRow(at: indexPath) else { return }
+    let todo = todoArray[indexPath.row]
     
-    toggleCheckmark(for: cell)
-    tableView.deselectRow(at: indexPath, animated: true)
+    toggleCompleted(for: todo)
+    tableView.reloadData()
+    tableView.selectRow(at: indexPath, animated: false, scrollPosition: .none)
+    DispatchQueue.main.asyncAfter(deadline: DispatchTime.now()) {
+      tableView.deselectRow(at: indexPath, animated: true)
+    }
   }
   
-  private func toggleCheckmark(for cell: UITableViewCell) {
-    cell.accessoryType = cell.accessoryType == .checkmark ? .none : .checkmark
+  private func toggleCompleted(for todo: Todo) {
+    todo.done = !todo.done
   }
 
   // MARK: - Add Todo Item
@@ -77,9 +87,9 @@ class TodoListViewController: UITableViewController {
     return alert
   }
   
-  private func addTodo(_ todo: String) {
-    itemArray.append(todo)
-    defaults.setValue(itemArray, forKey: "TodoList")
+  private func addTodo(_ title: String) {
+    todoArray.append(Todo(named: title))
+    defaults.setValue(todoArray, forKey: "TodoList")
     tableView.reloadData()
   }
   /*
