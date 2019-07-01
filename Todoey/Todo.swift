@@ -8,7 +8,7 @@
 
 import Foundation
 
-class Todo {
+class Todo: Encodable, Decodable {
   var title: String
   var done: Bool
   

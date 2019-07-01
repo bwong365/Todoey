@@ -15,14 +15,11 @@ class TodoListViewController: UITableViewController {
     Todo(named: "Buy Eggos"),
     Todo(named: "Destroy Demogorgon")
   ]
-  let defaults = UserDefaults.standard
+  let dataFilePath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?.appendingPathComponent("Todos.plist")
   
   override func viewDidLoad() {
     super.viewDidLoad()
-    
-    if let todoList = defaults.value(forKey: "TodoList") as? [Todo] {
-      todoArray = todoList
-    }
+    loadTodoData()
     // Uncomment the following line to preserve selection between presentations
     // self.clearsSelectionOnViewWillAppear = false
     
@@ -50,9 +47,8 @@ class TodoListViewController: UITableViewController {
   // MARK: - Table View Selection
   override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
     let todo = todoArray[indexPath.row]
-    
     toggleCompleted(for: todo)
-    tableView.reloadData()
+
     tableView.selectRow(at: indexPath, animated: false, scrollPosition: .none)
     DispatchQueue.main.asyncAfter(deadline: DispatchTime.now()) {
       tableView.deselectRow(at: indexPath, animated: true)
@@ -61,6 +57,7 @@ class TodoListViewController: UITableViewController {
   
   private func toggleCompleted(for todo: Todo) {
     todo.done = !todo.done
+    handleDataChange()
   }
 
   // MARK: - Add Todo Item
@@ -89,8 +86,33 @@ class TodoListViewController: UITableViewController {
   
   private func addTodo(_ title: String) {
     todoArray.append(Todo(named: title))
-    defaults.setValue(todoArray, forKey: "TodoList")
+    handleDataChange()
+  }
+  
+  private func handleDataChange() {
+    saveTodoData()
     tableView.reloadData()
+  }
+  
+  private func saveTodoData() {
+    let encoder = PropertyListEncoder()
+    do {
+      let encodedData = try encoder.encode(todoArray)
+      try encodedData.write(to: dataFilePath!)
+    } catch {
+      print("Error encoding todo list, \(error)")
+    }
+  }
+  
+  private func loadTodoData() {
+    guard let todoData = try? Data(contentsOf: dataFilePath!) else { return }
+    let decoder = PropertyListDecoder()
+    
+    do {
+      try todoArray = decoder.decode([Todo].self, from: todoData)
+    } catch {
+      print("Error loading from file, \(error)")
+    }
   }
   /*
   // Override to support conditional editing of the table view.
