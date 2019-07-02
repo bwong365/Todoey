@@ -90,7 +90,7 @@ extension TodoListViewController {
     var textField = UITextField()
     
     let addAction = UIAlertAction(title: "Add Item", style: .default) { _ in
-      guard let todoTitle = textField.text else { return }
+      guard let todoTitle = textField.text, textField.text!.count > 0 else { return }
       self.addTodo(withTitle: todoTitle)
     }
     let cancelAction = UIAlertAction(title: "Cancel", style: .destructive, handler: nil)
