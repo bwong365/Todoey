@@ -45,7 +45,7 @@ extension TodoListViewController {
     return cell
   }
   
-  // MARK: - Table View Selection
+  // MARK: - Table View Methods
   override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
     let todo = todoArray[indexPath.row]
     toggleCompleted(for: todo)
@@ -58,7 +58,32 @@ extension TodoListViewController {
   
   private func toggleCompleted(for todo: Todo) {
     todo.done = !todo.done
-    handleDataChange()
+    saveTodoData()
+    tableView.reloadData()
+  }
+  
+  internal override func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
+    if editingStyle == .delete {
+      promptDelete(for: indexPath)
+    }
+  }
+  
+  private func promptDelete(for indexPath: IndexPath) {
+    let deleteAlert = UIAlertController(title: "Would you like to delete", message: "\(todoArray[indexPath.row].title ?? "this todo")?", preferredStyle: .alert)
+    let cancelAction = UIAlertAction(title: "Cancel", style: .cancel, handler: nil)
+    let deleteAction = UIAlertAction(title: "Delete", style: .destructive) { _ in
+      self.deleteTodo(from: indexPath)
+    }
+    deleteAlert.addAction(cancelAction)
+    deleteAlert.addAction(deleteAction)
+    present(deleteAlert, animated: true, completion: nil)
+  }
+  
+  private func deleteTodo(from indexPath: IndexPath) {
+    context.delete(todoArray[indexPath.row])
+    todoArray.remove(at: indexPath.row)
+    tableView.deleteRows(at: [indexPath], with: .left)
+    saveTodoData()
   }
 }
 
@@ -90,17 +115,13 @@ extension TodoListViewController {
     todo.title = title
     todo.done = false
     todoArray.append(todo)
-    handleDataChange()
+    saveTodoData()
+    tableView.reloadData()
   }
 }
 
 // MARK: - Persist Data
 extension TodoListViewController {
-  private func handleDataChange() {
-    saveTodoData()
-    tableView.reloadData()
-  }
-  
   private func saveTodoData() {
     do {
       try context.save()
