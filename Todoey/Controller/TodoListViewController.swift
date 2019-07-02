@@ -11,6 +11,11 @@ import CoreData
 
 class TodoListViewController: UITableViewController {
   
+  var selectedCategory: Category? {
+    didSet {
+      loadTodoData()
+    }
+  }
   private var todoArray = [Todo]()
   let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
   
@@ -19,7 +24,6 @@ class TodoListViewController: UITableViewController {
   override func viewDidLoad() {
     super.viewDidLoad()
     configureRefreshControl()
-    loadTodoData()
     addTapGesture()
   }
   
@@ -110,6 +114,7 @@ extension TodoListViewController {
     let todo = Todo(context: context)
     todo.title = title
     todo.done = false
+    todo.parentCategory = selectedCategory
     todoArray.append(todo)
     saveTodoData()
     tableView.reloadData()
@@ -149,6 +154,9 @@ extension TodoListViewController {
       completion?()
     }
     
+    let categoryPredicate = NSPredicate(format: "parentCategory.name MATCHES %@", selectedCategory!.name!)
+    request.predicate = addPredicate(to: request, and: categoryPredicate)
+    
     do {
       todoArray = try context.fetch(request)
     } catch {
@@ -157,6 +165,14 @@ extension TodoListViewController {
     self.tableView.reloadData()
   }
   
+  private func addPredicate(to request: NSFetchRequest<Todo>, and predicate: NSPredicate) -> NSCompoundPredicate {
+    var subPredicates = [NSPredicate]()
+    subPredicates.append(predicate)
+    if let oldPredicate = request.predicate {
+      subPredicates.append(oldPredicate)
+    }
+    return NSCompoundPredicate(type: .and, subpredicates: subPredicates)
+  }
 }
 
 // MARK: - Pulldown Refresh

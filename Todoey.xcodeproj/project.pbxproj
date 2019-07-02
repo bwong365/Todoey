@@ -58,7 +58,6 @@
 		F368B58E22C86FB800BF30EA /* Todoey */ = {
 			isa = PBXGroup;
 			children = (
-				F38684D322CA998E0083C9D8 /* View */,
 				F38684D422CA99A10083C9D8 /* Controller */,
 				F38684D222CA99810083C9D8 /* Model */,
 				F368B58F22C86FB800BF30EA /* AppDelegate.swift */,
@@ -90,6 +89,7 @@
 			children = (
 				F395CB0222CAF43100D02170 /* CategoryViewController.swift */,
 				F368B5A522C8728400BF30EA /* TodoListViewController.swift */,
+				F38684D322CA998E0083C9D8 /* View */,
 			);
 			path = Controller;
 			sourceTree = "<group>";

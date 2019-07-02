@@ -42,6 +42,10 @@ extension CategoryViewController {
       promptDeleteCategory(for: indexPath)
     }
   }
+  
+  override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+    performSegue(withIdentifier: "gotoTodoList", sender: self)
+  }
 }
 
 // MARK: - Refresh Control
@@ -147,5 +151,19 @@ extension CategoryViewController {
       print("There was an error loading from context, \(error)")
     }
     tableView.reloadData()
+  }
+}
+
+extension CategoryViewController {
+  override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
+    switch segue.identifier {
+    case "gotoTodoList":
+      guard let row = tableView.indexPathForSelectedRow?.row else { return }
+      let destinationVC = segue.destination as! TodoListViewController
+      destinationVC.selectedCategory = categoryArray[row]
+    default:
+      return
+    }
+    
   }
 }
