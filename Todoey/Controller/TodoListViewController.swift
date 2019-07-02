@@ -13,11 +13,14 @@ class TodoListViewController: UITableViewController {
   
   private var todoArray = [Todo]()
   let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
-
+  
+  @IBOutlet weak var searchBar: UISearchBar!
+  
   override func viewDidLoad() {
     super.viewDidLoad()
     configureRefreshControl()
     loadTodoData()
+    addTapGesture()
   }
   
   @IBAction func addButtonPressed(_ sender: UIBarButtonItem) {
@@ -141,18 +144,19 @@ extension TodoListViewController {
     }
   }
   
-  private func loadTodoData(completion: (() -> Void)? = nil) {
+  private func loadTodoData(with request: NSFetchRequest<Todo> = Todo.fetchRequest(), completion: (() -> Void)? = nil) {
     defer {
       completion?()
     }
     
-    let request: NSFetchRequest = Todo.fetchRequest()
     do {
       todoArray = try context.fetch(request)
     } catch {
       print("Error loading from context , \(error)")
     }
+    self.tableView.reloadData()
   }
+  
 }
 
 // MARK: - Pulldown Refresh
@@ -165,7 +169,6 @@ extension TodoListViewController {
   @objc private func refreshTodos() {
     setTableAlpha(to: 0.5)
     loadTodoData() {
-      self.tableView.reloadData()
       self.setTableAlpha(to: 1)
       self.refreshControl?.endRefreshing()
     }
@@ -174,6 +177,35 @@ extension TodoListViewController {
   private func setTableAlpha(to alpha: CGFloat) {
     UIView.animate(withDuration: 0.3) {
       self.tableView.alpha = alpha
+    }
+  }
+}
+
+// MARK: - Search Bar
+extension TodoListViewController: UISearchBarDelegate {
+  func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
+    let request: NSFetchRequest<Todo> = Todo.fetchRequest()
+    request.predicate = NSPredicate(format: "title CONTAINS[cd] %@", searchBar.text!)
+    request.sortDescriptors = [NSSortDescriptor(key: "title", ascending: true)]
+    loadTodoData(with: request)
+  }
+  
+  func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
+    if searchText.count == 0 {
+      loadTodoData()
+    }
+  }
+  
+  // Called in viewDidLoad()
+  func addTapGesture() {
+    let tapGesture = UITapGestureRecognizer(target: self, action: #selector(viewTapped))
+    tapGesture.cancelsTouchesInView = false
+    view.addGestureRecognizer(tapGesture)
+  }
+  
+  @objc private func viewTapped() {
+    DispatchQueue.main.async {
+      self.searchBar.resignFirstResponder()
     }
   }
 }
