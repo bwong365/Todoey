@@ -7,15 +7,16 @@
 //
 
 import UIKit
-import CoreData
+import RealmSwift
 
 class CategoryViewController: UITableViewController {
   
-  var categoryArray = [Category]()
-  let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
+  let realm = try! Realm()
+  var categories: Results<Category>?
   
   override func viewDidLoad() {
     super.viewDidLoad()
+//    print(realm.configuration.fileURL)
     loadCategoryData()
     setupRefresh()
   }
@@ -28,23 +29,41 @@ class CategoryViewController: UITableViewController {
 // MARK: - Configure TableView
 extension CategoryViewController {
   override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-    return categoryArray.count
+    let count = categories?.count ?? 1
+    return count > 0 ? count : 1
   }
   
   override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
     let cell = tableView.dequeueReusableCell(withIdentifier: "CategoryCell", for: indexPath)
-    cell.textLabel?.text = categoryArray[indexPath.row].name
+    if categories == nil || categories?.count == 0 {
+      cell.textLabel?.text = "No Categories Added"
+      cell.textLabel?.textColor = UIColor.gray
+    } else {
+      cell.textLabel?.text = categories?[indexPath.row].name
+      cell.textLabel?.textColor = UIColor.black
+    }
     return cell
   }
   
   override func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
     if editingStyle == .delete {
-      promptDeleteCategory(for: indexPath)
+//      promptDeleteCategory(for: indexPath)
     }
   }
   
   override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+    defer {
+      animateDeselection(for: indexPath)
+    }
+    guard categories?.count ?? 0 > 0 else { return }
     performSegue(withIdentifier: "gotoTodoList", sender: self)
+  }
+  
+  private func animateDeselection(for indexPath: IndexPath) {
+    tableView.selectRow(at: indexPath, animated: false, scrollPosition: .none)
+    DispatchQueue.main.asyncAfter(deadline: DispatchTime.now()) {
+      self.tableView.deselectRow(at: indexPath, animated: true)
+    }
   }
 }
 
@@ -98,58 +117,53 @@ extension CategoryViewController {
   }
   
   private func addCategory(named name: String) {
-    let category = Category(context: context)
+    let category = Category()
     category.name = name
-    categoryArray.append(category)
-    saveCategoryData()
+    save(category: category)
     tableView.reloadData()
   }
   
-  private func promptDeleteCategory(for indexPath: IndexPath) {
-    let alert = createDeleteCategoryAlert(for: indexPath)
-    present(alert, animated: true, completion: nil)
-  }
-  
-  private func createDeleteCategoryAlert(for indexPath: IndexPath) -> UIAlertController {
-    let deleteAlert = UIAlertController(title: "Delete category:", message: "\(categoryArray[indexPath.row].name ?? "this category")?", preferredStyle: .alert)
-    let deleteAction = UIAlertAction(title: "Delete", style: .destructive) { _ in
-      self.deleteCategory(for: indexPath)
-    }
-    let cancelAction = UIAlertAction(title: "Cancel", style: .cancel, handler: nil)
-    deleteAlert.addAction(deleteAction)
-    deleteAlert.addAction(cancelAction)
-    return deleteAlert
-  }
-  
-  private func deleteCategory(for indexPath: IndexPath) {
-    context.delete(categoryArray[indexPath.row])
-    categoryArray.remove(at: indexPath.row)
-    tableView.deleteRows(at: [indexPath], with: .left)
-    saveCategoryData()
-  }
+//  private func promptDeleteCategory(for indexPath: IndexPath) {
+//    let alert = createDeleteCategoryAlert(for: indexPath)
+//    present(alert, animated: true, completion: nil)
+//  }
+//
+//  private func createDeleteCategoryAlert(for indexPath: IndexPath) -> UIAlertController {
+//    let deleteAlert = UIAlertController(title: "Delete category:", message: "\(categories[indexPath.row].name ?? "this category")?", preferredStyle: .alert)
+//    let deleteAction = UIAlertAction(title: "Delete", style: .destructive) { _ in
+//      self.deleteCategory(for: indexPath)
+//    }
+//    let cancelAction = UIAlertAction(title: "Cancel", style: .cancel, handler: nil)
+//    deleteAlert.addAction(deleteAction)
+//    deleteAlert.addAction(cancelAction)
+//    return deleteAlert
+//  }
+//
+//  private func deleteCategory(for indexPath: IndexPath) {
+//    context.delete(categories[indexPath.row])
+//    categories.remove(at: indexPath.row)
+//    tableView.deleteRows(at: [indexPath], with: .left)
+//    saveCategoryData()
+//  }
 }
 
 // MARK: - Persist Data
 extension CategoryViewController {
-  private func saveCategoryData() {
+  private func save(category: Category) {
     do {
-      try context.save()
+      try realm.write {
+        realm.add(category)
+      }
     } catch {
-      print("There was an error saving to context, \(error)")
+      print("There was an error writing to realm, \(error)")
     }
   }
   
-  private func loadCategoryData(request: NSFetchRequest<Category> = Category.fetchRequest(),
-                                completion: (() -> Void)? = nil) {
+  private func loadCategoryData(completion: (() -> Void)? = nil) {
     defer {
       completion?()
     }
-    
-    do {
-      categoryArray = try context.fetch(request)
-    } catch {
-      print("There was an error loading from context, \(error)")
-    }
+    categories = realm.objects(Category.self)
     tableView.reloadData()
   }
 }
@@ -160,10 +174,9 @@ extension CategoryViewController {
     case "gotoTodoList":
       guard let row = tableView.indexPathForSelectedRow?.row else { return }
       let destinationVC = segue.destination as! TodoListViewController
-      destinationVC.selectedCategory = categoryArray[row]
+      destinationVC.selectedCategory = categories?[row]
     default:
       return
     }
-    
   }
 }

@@ -7,17 +7,17 @@
 //
 
 import UIKit
-import CoreData
+import RealmSwift
 
 class TodoListViewController: UITableViewController {
-  
+  let realm = try! Realm()
+  private var todos: List<Todo>?
+
   var selectedCategory: Category? {
     didSet {
       loadTodoData()
     }
   }
-  private var todoArray = [Todo]()
-  let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
   
   @IBOutlet weak var searchBar: UISearchBar!
   
@@ -41,24 +41,34 @@ extension TodoListViewController {
   }
   
   override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-    return todoArray.count
+    let count = todos?.count
+    return (count ?? 0 > 0) ? 0 : 1
   }
 
   override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
     let cell = tableView.dequeueReusableCell(withIdentifier: "TodoItemCell", for: indexPath)
-    let todo = todoArray[indexPath.row]
-    cell.textLabel?.text = todo.title
-    cell.accessoryType = todo.done ? .checkmark : .none
+    
+    if (todos?.count ?? 0) > 0, let todo = todos?[indexPath.row] {
+      cell.textLabel?.text = todo.title
+      cell.accessoryType = todo.done ? .checkmark : .none
+      cell.textLabel?.textColor = UIColor.black
+    } else {
+      cell.textLabel?.text = "No Todos Added"
+      cell.textLabel?.textColor = UIColor.gray
+    }
+    
     return cell
   }
   
   override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+    defer { animateDeselection(for: indexPath) }
+    guard todos!.count > 0 else { return }
     toggleCompleted(for: indexPath)
   }
   
   internal override func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
     if editingStyle == .delete {
-      promptDelete(for: indexPath)
+//      promptDelete(for: indexPath)
     }
   }
 }
@@ -66,12 +76,11 @@ extension TodoListViewController {
 // MARK: - Table View Methods
 extension TodoListViewController {
   private func toggleCompleted(for indexPath: IndexPath) {
-    let todo = todoArray[indexPath.row]
-    todo.done = !todo.done
-    saveTodoData()
+    guard let todo = todos?[indexPath.row] else { return }
+    writeData {
+      todo.done = !todo.done
+    }
     tableView.reloadData()
-    
-    animateDeselection(for: indexPath)
   }
   
   private func animateDeselection(for indexPath: IndexPath) {
@@ -81,10 +90,10 @@ extension TodoListViewController {
     }
   }
   
-  private func promptDelete(for indexPath: IndexPath) {
-    let deleteAlert = createDeleteTodoAlert(for: indexPath)
-    present(deleteAlert, animated: true, completion: nil)
-  }
+//  private func promptDelete(for indexPath: IndexPath) {
+//    let deleteAlert = createDeleteTodoAlert(for: indexPath)
+//    present(deleteAlert, animated: true, completion: nil)
+//  }
 }
 
 // MARK: - CRUD
@@ -111,67 +120,54 @@ extension TodoListViewController {
   }
   
   private func addTodo(withTitle title: String) {
-    let todo = Todo(context: context)
-    todo.title = title
-    todo.done = false
-    todo.parentCategory = selectedCategory
-    todoArray.append(todo)
-    saveTodoData()
+    guard let category = selectedCategory else { return }
+    writeData {
+      let todo = Todo()
+      todo.title = title
+      todo.done = false
+      category.todos.append(todo)
+    }
+    
     tableView.reloadData()
   }
   
-  private func createDeleteTodoAlert(for indexPath: IndexPath) -> UIAlertController {
-    let deleteAlert = UIAlertController(title: "Would you like to delete", message: "\(todoArray[indexPath.row].title ?? "this todo")?", preferredStyle: .alert)
-    let cancelAction = UIAlertAction(title: "Cancel", style: .cancel, handler: nil)
-    let deleteAction = UIAlertAction(title: "Delete", style: .destructive) { _ in
-      self.deleteTodo(from: indexPath)
-    }
-    deleteAlert.addAction(cancelAction)
-    deleteAlert.addAction(deleteAction)
-    return deleteAlert
-  }
-  
-  private func deleteTodo(from indexPath: IndexPath) {
-    context.delete(todoArray[indexPath.row])
-    todoArray.remove(at: indexPath.row)
-    tableView.deleteRows(at: [indexPath], with: .left)
-    saveTodoData()
-  }
+//  private func createDeleteTodoAlert(for indexPath: IndexPath) -> UIAlertController {
+//    let deleteAlert = UIAlertController(title: "Would you like to delete", message: "\(todoArray[indexPath.row].title ?? "this todo")?", preferredStyle: .alert)
+//    let cancelAction = UIAlertAction(title: "Cancel", style: .cancel, handler: nil)
+//    let deleteAction = UIAlertAction(title: "Delete", style: .destructive) { _ in
+//      self.deleteTodo(from: indexPath)
+//    }
+//    deleteAlert.addAction(cancelAction)
+//    deleteAlert.addAction(deleteAction)
+//    return deleteAlert
+//  }
+//
+//  private func deleteTodo(from indexPath: IndexPath) {
+//    context.delete(todoArray[indexPath.row])
+//    todoArray.remove(at: indexPath.row)
+//    tableView.deleteRows(at: [indexPath], with: .left)
+//    saveTodoData()
+//  }
 }
 
 // MARK: - Persist Data
 extension TodoListViewController {
-  private func saveTodoData() {
-    do {
-      try context.save()
-    } catch {
-      print("Error saving context, \(error)")
-    }
-  }
-  
-  private func loadTodoData(with request: NSFetchRequest<Todo> = Todo.fetchRequest(), completion: (() -> Void)? = nil) {
+  private func loadTodoData(completion: (() -> Void)? = nil) {
     defer {
       completion?()
     }
-    
-    let categoryPredicate = NSPredicate(format: "parentCategory.name MATCHES %@", selectedCategory!.name!)
-    request.predicate = addPredicate(to: request, and: categoryPredicate)
-    
-    do {
-      todoArray = try context.fetch(request)
-    } catch {
-      print("Error loading from context , \(error)")
-    }
+    todos = selectedCategory?.todos // .sorted(byKeyPath: "title", ascending: true)
     self.tableView.reloadData()
   }
   
-  private func addPredicate(to request: NSFetchRequest<Todo>, and predicate: NSPredicate) -> NSCompoundPredicate {
-    var subPredicates = [NSPredicate]()
-    subPredicates.append(predicate)
-    if let oldPredicate = request.predicate {
-      subPredicates.append(oldPredicate)
+  private func writeData(_ code: () -> Void) {
+    do {
+      try realm.write {
+        code()
+      }
+    } catch {
+      print("There was an error writing to realm, \(error)")
     }
-    return NSCompoundPredicate(type: .and, subpredicates: subPredicates)
   }
 }
 
@@ -199,26 +195,26 @@ extension TodoListViewController {
 
 // MARK: - Search Bar
 extension TodoListViewController: UISearchBarDelegate {
-  func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
-    let request: NSFetchRequest<Todo> = Todo.fetchRequest()
-    request.predicate = NSPredicate(format: "title CONTAINS[cd] %@", searchBar.text!)
-    request.sortDescriptors = [NSSortDescriptor(key: "title", ascending: true)]
-    loadTodoData(with: request)
-  }
-  
-  func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
-    if searchText.count == 0 {
-      loadTodoData()
-    }
-  }
-  
+//  func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
+//    let request: NSFetchRequest<Todo> = Todo.fetchRequest()
+//    request.predicate = NSPredicate(format: "title CONTAINS[cd] %@", searchBar.text!)
+//    request.sortDescriptors = [NSSortDescriptor(key: "title", ascending: true)]
+//    loadTodoData(with: request)
+//  }
+//
+//  func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
+//    if searchText.count == 0 {
+//      loadTodoData()
+//    }
+//  }
+//
   // Called in viewDidLoad()
   func addTapGesture() {
     let tapGesture = UITapGestureRecognizer(target: self, action: #selector(viewTapped))
     tapGesture.cancelsTouchesInView = false
     view.addGestureRecognizer(tapGesture)
   }
-  
+
   @objc private func viewTapped() {
     DispatchQueue.main.async {
       self.searchBar.resignFirstResponder()
