@@ -25,6 +25,7 @@ class CategoryViewController: UITableViewController {
   }
 }
 
+// MARK: - Configure TableView
 extension CategoryViewController {
   override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
     return categoryArray.count
@@ -34,6 +35,12 @@ extension CategoryViewController {
     let cell = tableView.dequeueReusableCell(withIdentifier: "CategoryCell", for: indexPath)
     cell.textLabel?.text = categoryArray[indexPath.row].name
     return cell
+  }
+  
+  override func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
+    if editingStyle == .delete {
+      promptDeleteCategory(for: indexPath)
+    }
   }
 }
 
@@ -92,6 +99,29 @@ extension CategoryViewController {
     categoryArray.append(category)
     saveCategoryData()
     tableView.reloadData()
+  }
+  
+  private func promptDeleteCategory(for indexPath: IndexPath) {
+    let alert = createDeleteCategoryAlert(for: indexPath)
+    present(alert, animated: true, completion: nil)
+  }
+  
+  private func createDeleteCategoryAlert(for indexPath: IndexPath) -> UIAlertController {
+    let deleteAlert = UIAlertController(title: "Delete category:", message: "\(categoryArray[indexPath.row].name ?? "this category")?", preferredStyle: .alert)
+    let deleteAction = UIAlertAction(title: "Delete", style: .destructive) { _ in
+      self.deleteCategory(for: indexPath)
+    }
+    let cancelAction = UIAlertAction(title: "Cancel", style: .cancel, handler: nil)
+    deleteAlert.addAction(deleteAction)
+    deleteAlert.addAction(cancelAction)
+    return deleteAlert
+  }
+  
+  private func deleteCategory(for indexPath: IndexPath) {
+    context.delete(categoryArray[indexPath.row])
+    categoryArray.remove(at: indexPath.row)
+    tableView.deleteRows(at: [indexPath], with: .left)
+    saveCategoryData()
   }
 }
 
