@@ -45,21 +45,8 @@ extension TodoListViewController {
     return cell
   }
   
-  // MARK: - Table View Methods
   override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-    let todo = todoArray[indexPath.row]
-    toggleCompleted(for: todo)
-
-    tableView.selectRow(at: indexPath, animated: false, scrollPosition: .none)
-    DispatchQueue.main.asyncAfter(deadline: DispatchTime.now()) {
-      tableView.deselectRow(at: indexPath, animated: true)
-    }
-  }
-  
-  private func toggleCompleted(for todo: Todo) {
-    todo.done = !todo.done
-    saveTodoData()
-    tableView.reloadData()
+    toggleCompleted(for: indexPath)
   }
   
   internal override func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
@@ -67,27 +54,33 @@ extension TodoListViewController {
       promptDelete(for: indexPath)
     }
   }
-  
-  private func promptDelete(for indexPath: IndexPath) {
-    let deleteAlert = UIAlertController(title: "Would you like to delete", message: "\(todoArray[indexPath.row].title ?? "this todo")?", preferredStyle: .alert)
-    let cancelAction = UIAlertAction(title: "Cancel", style: .cancel, handler: nil)
-    let deleteAction = UIAlertAction(title: "Delete", style: .destructive) { _ in
-      self.deleteTodo(from: indexPath)
-    }
-    deleteAlert.addAction(cancelAction)
-    deleteAlert.addAction(deleteAction)
-    present(deleteAlert, animated: true, completion: nil)
+}
+
+// MARK: - Table View Methods
+extension TodoListViewController {
+  private func toggleCompleted(for indexPath: IndexPath) {
+    let todo = todoArray[indexPath.row]
+    todo.done = !todo.done
+    saveTodoData()
+    tableView.reloadData()
+    
+    animateDeselection(for: indexPath)
   }
   
-  private func deleteTodo(from indexPath: IndexPath) {
-    context.delete(todoArray[indexPath.row])
-    todoArray.remove(at: indexPath.row)
-    tableView.deleteRows(at: [indexPath], with: .left)
-    saveTodoData()
+  private func animateDeselection(for indexPath: IndexPath) {
+    tableView.selectRow(at: indexPath, animated: false, scrollPosition: .none)
+    DispatchQueue.main.asyncAfter(deadline: DispatchTime.now()) {
+      self.tableView.deselectRow(at: indexPath, animated: true)
+    }
+  }
+  
+  private func promptDelete(for indexPath: IndexPath) {
+    let deleteAlert = createDeleteTodoAlert(for: indexPath)
+    present(deleteAlert, animated: true, completion: nil)
   }
 }
 
-// MARK: - Add Todo Item
+// MARK: - CRUD
 extension TodoListViewController {
   private func createAddTodoAlert() -> UIAlertController {
     let alert = UIAlertController(title: "Add New Todoey Item", message: "", preferredStyle: .alert)
@@ -117,6 +110,24 @@ extension TodoListViewController {
     todoArray.append(todo)
     saveTodoData()
     tableView.reloadData()
+  }
+  
+  private func createDeleteTodoAlert(for indexPath: IndexPath) -> UIAlertController {
+    let deleteAlert = UIAlertController(title: "Would you like to delete", message: "\(todoArray[indexPath.row].title ?? "this todo")?", preferredStyle: .alert)
+    let cancelAction = UIAlertAction(title: "Cancel", style: .cancel, handler: nil)
+    let deleteAction = UIAlertAction(title: "Delete", style: .destructive) { _ in
+      self.deleteTodo(from: indexPath)
+    }
+    deleteAlert.addAction(cancelAction)
+    deleteAlert.addAction(deleteAction)
+    return deleteAlert
+  }
+  
+  private func deleteTodo(from indexPath: IndexPath) {
+    context.delete(todoArray[indexPath.row])
+    todoArray.remove(at: indexPath.row)
+    tableView.deleteRows(at: [indexPath], with: .left)
+    saveTodoData()
   }
 }
 
