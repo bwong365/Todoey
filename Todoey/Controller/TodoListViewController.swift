@@ -11,7 +11,7 @@ import RealmSwift
 
 class TodoListViewController: UITableViewController {
   let realm = try! Realm()
-  private var todos: List<Todo>?
+  private var todos: Results<Todo>?
 
   var selectedCategory: Category? {
     didSet {
@@ -155,7 +155,7 @@ extension TodoListViewController {
     defer {
       completion?()
     }
-    todos = selectedCategory?.todos // .sorted(byKeyPath: "title", ascending: true)
+    todos = selectedCategory?.todos.filter("TRUEPREDICATE") // .sorted(byKeyPath: "title", ascending: true)
     self.tableView.reloadData()
   }
   
@@ -194,19 +194,18 @@ extension TodoListViewController {
 
 // MARK: - Search Bar
 extension TodoListViewController: UISearchBarDelegate {
-//  func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
-//    let request: NSFetchRequest<Todo> = Todo.fetchRequest()
-//    request.predicate = NSPredicate(format: "title CONTAINS[cd] %@", searchBar.text!)
-//    request.sortDescriptors = [NSSortDescriptor(key: "title", ascending: true)]
-//    loadTodoData(with: request)
-//  }
-//
-//  func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
-//    if searchText.count == 0 {
-//      loadTodoData()
-//    }
-//  }
-//
+  func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
+    loadTodoData()
+    todos = todos?.filter("title CONTAINS[cd] %@", searchBar.text!)
+    tableView.reloadData()
+  }
+
+  func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
+    if searchText.count == 0 {
+      loadTodoData()
+    }
+  }
+
   // Called in viewDidLoad()
   func addTapGesture() {
     let tapGesture = UITapGestureRecognizer(target: self, action: #selector(viewTapped))
