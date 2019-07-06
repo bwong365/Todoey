@@ -152,6 +152,10 @@ extension TodoListViewController {
 
 // MARK: - Persist Data
 extension TodoListViewController {
+  /// Loads list of Todos from the selected Category's todos field and reloads tableView.
+  ///
+  /// Use the completion block to finish up animation methods, etc.
+  /// - parameter completion: A closure which is executed within defer {}
   private func loadTodoData(completion: (() -> Void)? = nil) {
     defer {
       completion?()
@@ -160,6 +164,12 @@ extension TodoListViewController {
     self.tableView.reloadData()
   }
   
+  /// Writes data to the realm declared in instance variables
+  ///
+  /// Uses the realm.write function, executing a closure within the do-block.
+  /// Prints an error on failure. Use this method to make your changes persist.
+  ///
+  /// - parameter code: Closure to execute inside the realm.write do-block
   private func writeData(_ code: () -> Void) {
     do {
       try realm.write {
