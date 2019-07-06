@@ -124,6 +124,7 @@ extension TodoListViewController {
     writeData {
       let todo = Todo()
       todo.title = title
+      todo.creationDate = Date()
       category.todos.append(todo)
     }
     
@@ -155,7 +156,7 @@ extension TodoListViewController {
     defer {
       completion?()
     }
-    todos = selectedCategory?.todos.filter("TRUEPREDICATE") // .sorted(byKeyPath: "title", ascending: true)
+    todos = selectedCategory?.todos.sorted(byKeyPath: "creationDate", ascending: true) // .sorted(byKeyPath: "title", ascending: true)
     self.tableView.reloadData()
   }
   
@@ -196,7 +197,7 @@ extension TodoListViewController {
 extension TodoListViewController: UISearchBarDelegate {
   func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
     loadTodoData()
-    todos = todos?.filter("title CONTAINS[cd] %@", searchBar.text!)
+    todos = todos?.filter("title CONTAINS[cd] %@", searchBar.text!).sorted(byKeyPath: "creationDate", ascending: true)
     tableView.reloadData()
   }
 
