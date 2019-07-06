@@ -168,7 +168,7 @@ extension TodoListViewController {
   ///
   /// Uses the realm.write function, executing a closure within the do-block.
   /// Prints an error on failure. Use this method to make your changes persist.
-  ///
+  /// - important: A realm must be declared within the class variables.
   /// - parameter code: Closure to execute inside the realm.write do-block
   private func writeData(_ code: () -> Void) {
     do {
