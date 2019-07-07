@@ -12,6 +12,7 @@ import ChameleonFramework
 
 class TodoListViewController: SwipeTableViewController {
   let realm = try! Realm()
+  var originalColor: UIColor?
   private var todos: Results<Todo>?
 
   var selectedCategory: Category? {
@@ -34,20 +35,29 @@ class TodoListViewController: SwipeTableViewController {
     searchBar.barStyle = .blackTranslucent
   }
   
+  override func viewWillDisappear(_ animated: Bool) {
+    updateNavBar(with: UIColor.init(hexString: "#0096FF"))
+  }
+  
   @IBAction func addButtonPressed(_ sender: UIBarButtonItem) {
     let alert = createAddTodoAlert()
     present(alert, animated: true, completion: nil)
   }
   
   private func configureHeaderAppearance() {
+    originalColor = navigationController?.navigationBar.barTintColor
     title = selectedCategory!.name
     guard let color = UIColor.init(hexString: selectedCategory!.backgroundColor) else { return }
+    updateNavBar(with: color)
+    searchBar.barTintColor = color
+    searchBar.searchBarStyle = .prominent
+  }
+  
+  private func updateNavBar(with color: UIColor) {
     let contrastColor = UIColor.init(contrastingBlackOrWhiteColorOn: color, isFlat: true)
     navigationController?.navigationBar.barTintColor = color
     navigationController?.navigationBar.tintColor = contrastColor
     navigationController?.navigationBar.largeTitleTextAttributes = [NSAttributedString.Key.foregroundColor: contrastColor!]
-    searchBar.barTintColor = color
-    searchBar.searchBarStyle = .prominent
   }
   
   // MARK: Superclass Methods
