@@ -22,6 +22,11 @@ class CategoryViewController: SwipeTableViewController {
     setupRefresh()
   }
   
+  override func viewWillAppear(_ animated: Bool) {
+    navigationController?.navigationBar.largeTitleTextAttributes = [NSAttributedString.Key.foregroundColor: UIColor.white]
+    tableView.separatorStyle = .none
+  }
+  
   @IBAction func addButtonPressed(_ sender: UIBarButtonItem) {
     promptAddCategory()
   }
