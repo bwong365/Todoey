@@ -8,6 +8,7 @@
 
 import UIKit
 import RealmSwift
+import ChameleonFramework
 
 class CategoryViewController: SwipeTableViewController {
   
@@ -39,17 +40,34 @@ extension CategoryViewController {
   
   override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
     let cell = super.tableView(tableView, cellForRowAt: indexPath)
+    guard categories != nil else { return cell }
     
-    if categories == nil || categories?.count == 0 {
-      cell.textLabel?.text = "No Categories Added"
-      cell.textLabel?.textColor = UIColor.gray
+    if categories!.count > 0, let category = categories?[indexPath.row] {
+      fill(cell, basedOn: category)
     } else {
-      cell.textLabel?.text = categories?[indexPath.row].name
-      cell.textLabel?.textColor = UIColor.black
+      setCellEmptyState(cell: cell)
     }
     return cell
   }
   
+  private func setCellEmptyState(cell: UITableViewCell) {
+    cell.textLabel?.text = "No Categories Added"
+    cell.textLabel?.textColor = UIColor.gray
+  }
+  
+  private func fill(_ cell: UITableViewCell, basedOn category: Category) {
+    cell.textLabel?.text = category.name
+    if let color = UIColor.init(hexString: category.backgroundColor) {
+      cell.backgroundColor = color
+      cell.textLabel?.textColor = UIColor(contrastingBlackOrWhiteColorOn: color, isFlat: true)
+    } else {
+      cell.textLabel?.textColor = UIColor.black
+    }
+  }
+}
+
+// MARK: - Cell Selection
+extension CategoryViewController {
   override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
     defer {
       animateDeselection(for: indexPath)
@@ -90,6 +108,7 @@ extension CategoryViewController {
 
 // MARK: - CRUD
 extension CategoryViewController {
+  // MARK: Add
   private func promptAddCategory() {
     let alert = createAddCategoryAlert()
     present(alert, animated: true, completion: nil)
@@ -105,7 +124,6 @@ extension CategoryViewController {
     }
     
     let cancelAction = UIAlertAction(title: "Cancel", style: .destructive, handler: nil)
-    
     addAlert.addAction(addAction)
     addAlert.addAction(cancelAction)
     addAlert.addTextField { alertTextField in
@@ -118,11 +136,12 @@ extension CategoryViewController {
   private func addCategory(named name: String) {
     let category = Category()
     category.name = name
+    category.backgroundColor = UIColor.randomFlat().hexValue()
     save(category: category)
     tableView.reloadData()
   }
 
-  
+  // MARK: Delete
   private func promptDeleteCategory(for indexPath: IndexPath) {
     let alert = createDeleteCategoryAlert(for: indexPath)
     present(alert, animated: true, completion: nil)
@@ -181,6 +200,7 @@ extension CategoryViewController {
   }
 }
 
+// MARK: - Transition Methods
 extension CategoryViewController {
   override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
     switch segue.identifier {
