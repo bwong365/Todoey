@@ -93,7 +93,6 @@ extension TodoListViewController {
   private func calculateBGColor(using indexPath: IndexPath) -> UIColor {
     guard let baseColor = UIColor.init(hexString: selectedCategory?.backgroundColor) else { return UIColor.white }
     let darkenFactor = CGFloat(indexPath.row) / CGFloat(todos?.count ?? 1)
-    print(darkenFactor)
     return baseColor.darken(byPercentage: darkenFactor)
   }
   
