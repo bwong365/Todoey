@@ -8,6 +8,7 @@
 
 import UIKit
 import RealmSwift
+import ChameleonFramework
 
 class TodoListViewController: SwipeTableViewController {
   let realm = try! Realm()
@@ -23,6 +24,7 @@ class TodoListViewController: SwipeTableViewController {
   
   override func viewDidLoad() {
     super.viewDidLoad()
+    tableView.separatorStyle = .none
     configureRefreshControl()
     addTapGesture()
   }
@@ -51,7 +53,9 @@ extension TodoListViewController {
 
   override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
     let cell = super.tableView(tableView, cellForRowAt: indexPath)
-    
+    cell.backgroundColor = calculateBGColor(using: indexPath)
+    cell.textLabel?.textColor = UIColor.init(contrastingBlackOrWhiteColorOn: cell.backgroundColor, isFlat: true)
+
     if (todos?.count ?? 0) > 0, let todo = todos?[indexPath.row] {
       fill(cell, basedOn: todo)
     } else {
@@ -60,15 +64,21 @@ extension TodoListViewController {
     return cell
   }
   
+  private func calculateBGColor(using indexPath: IndexPath) -> UIColor {
+    guard let baseColor = UIColor.init(hexString: selectedCategory?.backgroundColor) else { return UIColor.white }
+    let darkenFactor = CGFloat(indexPath.row) / CGFloat(todos?.count ?? 1)
+    print(darkenFactor)
+    return baseColor.darken(byPercentage: darkenFactor)
+  }
+  
   private func setCellEmptyState(cell: UITableViewCell) {
     cell.textLabel?.text = "No Todos Added"
-    cell.textLabel?.textColor = UIColor.gray
   }
   
   private func fill(_ cell: UITableViewCell, basedOn todo: Todo) {
     cell.textLabel?.text = todo.title
     cell.accessoryType = todo.done ? .checkmark : .none
-    cell.textLabel?.textColor = UIColor.black
+    cell.tintColor = UIColor.init(contrastingBlackOrWhiteColorOn: cell.backgroundColor, isFlat: true)
   }
 }
 
