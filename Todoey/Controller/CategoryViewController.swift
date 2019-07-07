@@ -24,6 +24,10 @@ class CategoryViewController: SwipeTableViewController {
   @IBAction func addButtonPressed(_ sender: UIBarButtonItem) {
     promptAddCategory()
   }
+  
+  override func deleteActionSwiped(at indexPath: IndexPath) {
+    promptDeleteCategory(for: indexPath)
+  }
 }
 
 // MARK: - Configure TableView
@@ -117,6 +121,7 @@ extension CategoryViewController {
     save(category: category)
     tableView.reloadData()
   }
+
   
   private func promptDeleteCategory(for indexPath: IndexPath) {
     let alert = createDeleteCategoryAlert(for: indexPath)

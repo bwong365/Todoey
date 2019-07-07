@@ -31,6 +31,10 @@ class TodoListViewController: SwipeTableViewController {
     let alert = createAddTodoAlert()
     present(alert, animated: true, completion: nil)
   }
+  
+  override func deleteActionSwiped(at indexPath: IndexPath) {
+    promptDelete(for: indexPath)
+  }
 }
 
 
