@@ -32,11 +32,11 @@ class TodoListViewController: SwipeTableViewController {
     present(alert, animated: true, completion: nil)
   }
   
+  // MARK: Superclass Methods
   override func deleteActionSwiped(at indexPath: IndexPath) {
     promptDelete(for: indexPath)
   }
 }
-
 
 // MARK: - Table View Configuration
 extension TodoListViewController {
@@ -53,26 +53,33 @@ extension TodoListViewController {
     let cell = super.tableView(tableView, cellForRowAt: indexPath)
     
     if (todos?.count ?? 0) > 0, let todo = todos?[indexPath.row] {
-      cell.textLabel?.text = todo.title
-      cell.accessoryType = todo.done ? .checkmark : .none
-      cell.textLabel?.textColor = UIColor.black
+      fill(cell, basedOn: todo)
     } else {
-      cell.textLabel?.text = "No Todos Added"
-      cell.textLabel?.textColor = UIColor.gray
+      setCellEmptyState(cell: cell)
     }
-    
     return cell
   }
   
+  private func setCellEmptyState(cell: UITableViewCell) {
+    cell.textLabel?.text = "No Todos Added"
+    cell.textLabel?.textColor = UIColor.gray
+  }
+  
+  private func fill(_ cell: UITableViewCell, basedOn todo: Todo) {
+    cell.textLabel?.text = todo.title
+    cell.accessoryType = todo.done ? .checkmark : .none
+    cell.textLabel?.textColor = UIColor.black
+  }
+}
+
+// MARK: - Selection Methods
+extension TodoListViewController {
   override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
     defer { animateDeselection(for: indexPath) }
     guard todos!.count > 0 else { return }
     toggleCompleted(for: indexPath)
   }
-}
-
-// MARK: - Table View Methods
-extension TodoListViewController {
+  
   private func toggleCompleted(for indexPath: IndexPath) {
     guard let todo = todos?[indexPath.row] else { return }
     writeData {
@@ -87,15 +94,11 @@ extension TodoListViewController {
       self.tableView.deselectRow(at: indexPath, animated: true)
     }
   }
-  
-  private func promptDelete(for indexPath: IndexPath) {
-    let deleteAlert = createDeleteTodoAlert(for: indexPath)
-    present(deleteAlert, animated: true, completion: nil)
-  }
 }
 
 // MARK: - CRUD
 extension TodoListViewController {
+  // MARK: Add
   private func createAddTodoAlert() -> UIAlertController {
     let alert = UIAlertController(title: "Add New Todoey Item", message: "", preferredStyle: .alert)
     var textField = UITextField()
@@ -113,7 +116,6 @@ extension TodoListViewController {
       alertTextField.placeholder = "New Todo"
       textField = alertTextField
     }
-    
     return alert
   }
   
@@ -125,8 +127,13 @@ extension TodoListViewController {
       todo.creationDate = Date()
       category.todos.append(todo)
     }
-    
     tableView.reloadData()
+  }
+  
+  // MARK: Delete
+  private func promptDelete(for indexPath: IndexPath) {
+    let deleteAlert = createDeleteTodoAlert(for: indexPath)
+    present(deleteAlert, animated: true, completion: nil)
   }
   
   private func createDeleteTodoAlert(for indexPath: IndexPath) -> UIAlertController {
