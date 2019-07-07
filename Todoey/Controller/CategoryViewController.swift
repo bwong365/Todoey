@@ -8,9 +8,8 @@
 
 import UIKit
 import RealmSwift
-import SwipeCellKit
 
-class CategoryViewController: UITableViewController {
+class CategoryViewController: SwipeTableViewController {
   
   let realm = try! Realm()
   var categories: Results<Category>?
@@ -35,8 +34,8 @@ extension CategoryViewController {
   }
   
   override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-    let cell = tableView.dequeueReusableCell(withIdentifier: "CategoryCell", for: indexPath) as! SwipeTableViewCell
-    cell.delegate = self
+    let cell = super.tableView(tableView, cellForRowAt: indexPath)
+    
     if categories == nil || categories?.count == 0 {
       cell.textLabel?.text = "No Categories Added"
       cell.textLabel?.textColor = UIColor.gray
@@ -187,16 +186,5 @@ extension CategoryViewController {
     default:
       return
     }
-  }
-}
-
-extension CategoryViewController: SwipeTableViewCellDelegate {
-  func tableView(_ tableView: UITableView, editActionsForRowAt indexPath: IndexPath, for orientation: SwipeActionsOrientation) -> [SwipeAction]? {
-    guard orientation == .right else { return nil}
-    let deleteAction = SwipeAction(style: .destructive, title: "Delete") { (_, indexPath) in
-      self.promptDeleteCategory(for: indexPath)
-    }
-    deleteAction.image = UIImage(named: "delete-icon")
-    return [deleteAction]
   }
 }

@@ -9,7 +9,7 @@
 import UIKit
 import RealmSwift
 
-class TodoListViewController: UITableViewController {
+class TodoListViewController: SwipeTableViewController {
   let realm = try! Realm()
   private var todos: Results<Todo>?
 
@@ -46,7 +46,7 @@ extension TodoListViewController {
   }
 
   override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-    let cell = tableView.dequeueReusableCell(withIdentifier: "TodoItemCell", for: indexPath)
+    let cell = super.tableView(tableView, cellForRowAt: indexPath)
     
     if (todos?.count ?? 0) > 0, let todo = todos?[indexPath.row] {
       cell.textLabel?.text = todo.title
@@ -64,12 +64,6 @@ extension TodoListViewController {
     defer { animateDeselection(for: indexPath) }
     guard todos!.count > 0 else { return }
     toggleCompleted(for: indexPath)
-  }
-  
-  internal override func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
-    if editingStyle == .delete {
-      promptDelete(for: indexPath)
-    }
   }
 }
 
