@@ -29,9 +29,25 @@ class TodoListViewController: SwipeTableViewController {
     addTapGesture()
   }
   
+  override func viewWillAppear(_ animated: Bool) {
+    configureHeaderAppearance()
+    searchBar.barStyle = .blackTranslucent
+  }
+  
   @IBAction func addButtonPressed(_ sender: UIBarButtonItem) {
     let alert = createAddTodoAlert()
     present(alert, animated: true, completion: nil)
+  }
+  
+  private func configureHeaderAppearance() {
+    title = selectedCategory!.name
+    guard let color = UIColor.init(hexString: selectedCategory!.backgroundColor) else { return }
+    let contrastColor = UIColor.init(contrastingBlackOrWhiteColorOn: color, isFlat: true)
+    navigationController?.navigationBar.barTintColor = color
+    navigationController?.navigationBar.tintColor = contrastColor
+    navigationController?.navigationBar.largeTitleTextAttributes = [NSAttributedString.Key.foregroundColor: contrastColor!]
+    searchBar.barTintColor = color
+    searchBar.searchBarStyle = .prominent
   }
   
   // MARK: Superclass Methods
