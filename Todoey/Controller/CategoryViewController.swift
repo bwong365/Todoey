@@ -8,6 +8,7 @@
 
 import UIKit
 import RealmSwift
+import SwipeCellKit
 
 class CategoryViewController: UITableViewController {
   
@@ -34,7 +35,8 @@ extension CategoryViewController {
   }
   
   override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-    let cell = tableView.dequeueReusableCell(withIdentifier: "CategoryCell", for: indexPath)
+    let cell = tableView.dequeueReusableCell(withIdentifier: "CategoryCell", for: indexPath) as! SwipeTableViewCell
+    cell.delegate = self
     if categories == nil || categories?.count == 0 {
       cell.textLabel?.text = "No Categories Added"
       cell.textLabel?.textColor = UIColor.gray
@@ -43,12 +45,6 @@ extension CategoryViewController {
       cell.textLabel?.textColor = UIColor.black
     }
     return cell
-  }
-  
-  override func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
-    if editingStyle == .delete {
-//      promptDeleteCategory(for: indexPath)
-    }
   }
   
   override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
@@ -123,39 +119,36 @@ extension CategoryViewController {
     tableView.reloadData()
   }
   
-//  private func promptDeleteCategory(for indexPath: IndexPath) {
-//    let alert = createDeleteCategoryAlert(for: indexPath)
-//    present(alert, animated: true, completion: nil)
-//  }
-//
-//  private func createDeleteCategoryAlert(for indexPath: IndexPath) -> UIAlertController {
-//    let deleteAlert = UIAlertController(title: "Delete category:", message: "\(categories[indexPath.row].name ?? "this category")?", preferredStyle: .alert)
-//    let deleteAction = UIAlertAction(title: "Delete", style: .destructive) { _ in
-//      self.deleteCategory(for: indexPath)
-//    }
-//    let cancelAction = UIAlertAction(title: "Cancel", style: .cancel, handler: nil)
-//    deleteAlert.addAction(deleteAction)
-//    deleteAlert.addAction(cancelAction)
-//    return deleteAlert
-//  }
-//
-//  private func deleteCategory(for indexPath: IndexPath) {
-//    context.delete(categories[indexPath.row])
-//    categories.remove(at: indexPath.row)
-//    tableView.deleteRows(at: [indexPath], with: .left)
-//    saveCategoryData()
-//  }
+  private func promptDeleteCategory(for indexPath: IndexPath) {
+    let alert = createDeleteCategoryAlert(for: indexPath)
+    present(alert, animated: true, completion: nil)
+  }
+
+  private func createDeleteCategoryAlert(for indexPath: IndexPath) -> UIAlertController {
+    let deleteAlert = UIAlertController(title: "Delete category:", message: "\(categories?[indexPath.row].name ?? "this category")?", preferredStyle: .alert)
+    let deleteAction = UIAlertAction(title: "Delete", style: .destructive) { _ in
+      self.deleteCategory(for: indexPath)
+    }
+    let cancelAction = UIAlertAction(title: "Cancel", style: .cancel, handler: nil)
+    deleteAlert.addAction(deleteAction)
+    deleteAlert.addAction(cancelAction)
+    return deleteAlert
+  }
+
+  private func deleteCategory(for indexPath: IndexPath) {
+    guard let category = categories?[indexPath.row] else { return }
+    writeData {
+      realm.delete(category)
+    }
+    tableView.deleteRows(at: [indexPath], with: .left)
+  }
 }
 
 // MARK: - Persist Data
 extension CategoryViewController {
   private func save(category: Category) {
-    do {
-      try realm.write {
-        realm.add(category)
-      }
-    } catch {
-      print("There was an error writing to realm, \(error)")
+    writeData {
+      realm.add(category)
     }
   }
   
@@ -165,6 +158,22 @@ extension CategoryViewController {
     }
     categories = realm.objects(Category.self)
     tableView.reloadData()
+  }
+  
+  /// Writes data to the realm declared in instance variables
+  ///
+  /// Uses the realm.write function, executing a closure within the do-block.
+  /// Prints an error on failure. Use this method to make your changes persist.
+  /// - important: A realm must be declared within the class variables.
+  /// - parameter code: Closure to execute inside the realm.write do-block
+  private func writeData(_ code: () -> Void) {
+    do {
+      try realm.write {
+        code()
+      }
+    } catch {
+      print("There was an error writing to realm, \(error)")
+    }
   }
 }
 
@@ -178,5 +187,16 @@ extension CategoryViewController {
     default:
       return
     }
+  }
+}
+
+extension CategoryViewController: SwipeTableViewCellDelegate {
+  func tableView(_ tableView: UITableView, editActionsForRowAt indexPath: IndexPath, for orientation: SwipeActionsOrientation) -> [SwipeAction]? {
+    guard orientation == .right else { return nil}
+    let deleteAction = SwipeAction(style: .destructive, title: "Delete") { (_, indexPath) in
+      self.promptDeleteCategory(for: indexPath)
+    }
+    deleteAction.image = UIImage(named: "delete-icon")
+    return [deleteAction]
   }
 }
